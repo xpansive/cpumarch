@@ -1,11 +1,18 @@
 An experimental cpu distance field raymarcher.
 
-It outputs a ppm image to stdout, pipe it to your favorite image viewer.
+Usage:
+
+make scene=mandelbulb png
+your_favorite_image_viewer render.png
+
+-or-
+
+make scene=mandelbulb imgviewer=your_favorite_image_viewer view
+
+Available scenes:
+mandelbulb, outline
 
 Dependencies:
 glm
 feh (optional, but a great image viewer)
 modern g++
-
-Link with pthread and enable C++11.
--O3 is highly recommended.

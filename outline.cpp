@@ -29,7 +29,7 @@ distance map(const vec3& p)
 		2
 	};
 
-	return o_union(floor, o_union(outline, outline));
+	return o_union(floor, o_union(shape, outline));
 }
 
 vec3 get_color(const int id, const vec3& pos)

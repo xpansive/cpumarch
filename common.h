@@ -1,6 +1,7 @@
 #pragma once
 
 #include <glm/glm.hpp>
+#include <glm/ext.hpp>
 
 using glm::vec2;
 using glm::vec3;
@@ -16,6 +17,10 @@ using glm::clamp;
 using glm::min;
 using glm::floor;
 using glm::round;
+using glm::reflect;
+using glm::inversesqrt;
+using glm::mix;
+using glm::mod;
 
 struct distance {
 	float field;
@@ -80,3 +85,23 @@ float d_mandelbulb(const vec3& p);
 
 // Returns the distance to a mandelbulb of power n
 float d_mandelbulb(const vec3& p, const float n);
+
+float d_menger_sponge(const vec3& p);
+
+//
+// Raymarching functions
+//
+
+// Marches a ray from pos in direction dir until it hits an object. Returns object color.
+vec3 raymarch(const vec3& pos, const vec3& dir, const int userdata);
+
+
+//
+// Lighting functions
+//
+
+float subsurface_scattering(const vec3& p, const vec3& n, const float d);
+float ambient_occlusion(const vec3& p, const vec3& n, const float d);
+float shadow(vec3 p, const vec3& l);
+float softshadow(const vec3& ro, const vec3& rd, const float mint, const float maxt, const float k);
+vec3 get_normal(const float dist, const vec3& p);

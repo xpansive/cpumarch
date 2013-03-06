@@ -1,4 +1,5 @@
 #include "common.h"
+#include "scene.h"
 
 float lengthn(const vec3& x, const float n)
 {
@@ -114,7 +115,7 @@ float d_mandelbulb(const vec3& p) {
 		const float x4 = x2*x2;
 		const float y4 = y2*y2;
 		const float z4 = z2*z2;
-		const float k2 = glm::inversesqrt(k3*k3*k3*k3*k3*k3*k3);
+		const float k2 = inversesqrt(k3*k3*k3*k3*k3*k3*k3);
 		const float k5 = x2*z2*2;
 		const float k1 = x4 + y4 + z4 - 6*y2*z2 - 6*x2*y2 + k5;
 		const float k4 = k3 - y2;
@@ -124,4 +125,113 @@ float d_mandelbulb(const vec3& p) {
 	}
 	r = length(w);
 	return 0.5 * log(r) * r / dr;
+}
+
+float d_menger_sponge(const vec3& p)
+{
+	float d = d_box(p, vec3(1.0));
+
+	float s = 1;
+	for(int m = 0; m < 5; m++)
+	{
+		const vec3 a = mod(p * s, 2.0f) - 1.0f;
+		s *= 3;
+		const vec3 r = abs(1.0f - abs(a) * 3.0f);
+
+		const float da = max(r.x, r.y);
+		const float db = max(r.y, r.z);
+		const float dc = max(r.z, r.x);
+		const float c = (min(da, min(db, dc)) - 1) / s;
+
+		d = max(d, c);
+	}
+	return d;
+}
+
+float softshadow(const vec3& ro, const vec3& rd, const float mint, const float maxt, const float k)
+{
+	float res = 1;
+	float t = mint;
+	for(int iter = 0; iter < 128; iter++) {
+		float h = map(ro + rd * t).field;
+		if(h < 0.0001)
+			return 0;
+		res = min(res, k*h/t);
+		t += h;
+		if (t > maxt)
+			break;
+	}
+	return res;
+}
+
+float shadow(vec3 p, const vec3& l)
+{
+	vec3 d = normalize(l - p);
+	float maxd = glm::distance(p, l);
+	float dist = 0.1;
+	for (int i = 0; i < 256; i++) {
+		p += d * dist;
+		dist = map(p).field;
+		if (dist < 0.001 || dist > maxd) break;
+	}
+	if (dist < 0.001) {
+		return 0.3;
+	}
+	return 1;
+}
+
+float ambient_occlusion(const vec3& p, const vec3& n, const float d)
+{
+	float res = 1;
+	for (int i = 0; i < 5; i++) {
+		res -= (i * d - map(p + n * (i * d)).field) / exp2(i);
+	}
+	return res;
+}
+
+float subsurface_scattering(const vec3& p, const vec3& n, const float d)
+{
+	float res = 0;
+	for (int i = 0; i < 5; i++) {
+		res += (i * d - map(p + n * (i * d)).field) / exp2(i);
+	}
+	return res;
+}
+
+vec3 raymarch(const vec3& pos, const vec3& dir, const int userdata)
+{
+	static const float min_dist = get_dist_epsilon();
+	static const float max_dist = get_max_dist();
+	static const int max_iter = get_max_iter();
+	static const vector<vec3> lightPositions = get_lights();
+	static const vec3 background_color = get_background_color();
+
+	distance dist { 0, 0 };
+	float total_dist = 0;
+	vec3 p = pos;
+	int iter;
+	for (iter = 0; iter < max_iter; iter++) {
+		dist = map(p);
+		if (dist.field < min_dist || total_dist > max_dist)
+			break;
+		p += dir * dist.field;
+		total_dist += dist.field;
+	}
+
+	if (dist.field < min_dist) {
+		const vec3 color = calculate_color(dist, p, dir, userdata);
+		return color;
+	} else {
+		return background_color;
+	}
+}
+
+vec3 get_normal(const float dist, const vec3& p)
+{
+	static const float normdist = 0.0001;
+	const vec3 n = normalize(vec3(
+				dist - map(p + vec3(normdist, 0, 0)).field,
+				dist - map(p + vec3(0, normdist, 0)).field,
+				dist - map(p + vec3(0, 0, normdist)).field));
+	return n;
 }

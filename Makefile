@@ -1,7 +1,8 @@
 img = render
 imgviewer = feh -.
-cppflags = -c -std=c++11 -O3 -ffast-math -march=native -msse2 -Wall -Wextra -flto
-ldflags = -lpthread -flto -O3 
+optimizeflags = -ffast-math -march=native -O3 -flto -mfpmath=sse
+cppflags = -c -std=c++11 -Wall -Wextra $(optimizeflags)
+ldflags = -lpthread $(optimizeflags)
 
 $(scene) : $(scene).o cpumarch.o common.o
 	g++ $(ldflags) cpumarch.o common.o $(scene).o -o $(scene)

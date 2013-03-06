@@ -2,34 +2,9 @@
 
 distance map(const vec3& p)
 {
-	float f = length(p) - 2.0f;
-	float d = max(f, length(vec2(p.x, p.y)) - 0.5f);
-	d = min(d, max(f, length(vec2(p.z, p.y)) - 0.5f));
-	d = min(d, max(f, length(vec2(p.z, p.x)) - 0.5f));
-	d = min(max(-f - 0.5f, d), max(-d, f + 1.0f));
-
-	distance shape {
-		d,
-		0
+	return {
+		d_menger_sponge(mod(p + 0.5f, 1.0f) - 0.5f), 0
 	};
-
-	d = d_outline_diamond(shape.field - 0.25, p, vec3(1, 0, 0), 0.05);
-	d = min(d, d_outline_diamond(shape.field - 0.25, p, vec3(0, 1, 0), 0.05));
-	d = min(d, d_outline_diamond(shape.field - 0.25, p, vec3(0, 0, 1), 0.05));
-
-	distance outline {
-		d,
-		1
-	};
-
-	d = d_plane(p + vec3(0, 3, 0), vec3(0, 1, 0));
-
-	distance floor {
-		d,
-		2
-	};
-
-	return o_union(floor, o_union(shape, outline));
 }
 
 vec3 get_color(const int id, const vec3& pos)
@@ -59,19 +34,20 @@ vec3 calculate_color(const distance& dist, const vec3& p, const vec3& ray, const
 	const float ratio = f + (1 - f) * pow(1 - dot(ray, normal), fresnel_power);
 
 	vec3 diffuse = get_color(dist.object_id, p);
-	if (dist.object_id == 2 && userdata < 3) {
+	if (userdata == 0) {
 		vec3 reflect_ray = glm::reflect(ray, normal);
-		diffuse = mix(diffuse, raymarch(p + reflect_ray * 0.01f, reflect_ray, userdata + 1), ratio);
+		diffuse = mix(diffuse, raymarch(p + reflect_ray * 0.1f, reflect_ray, userdata + 1), ratio);
 	}
-	vec3 color(0.1);
+	vec3 color(0);
 	for (vec3 light : get_lights()) {
 		const vec3 light_dir = normalize(p - light);
 		const float light_dist = glm::distance(p, light);
 		color += max(dot(normal, light_dir), 0.0f) * diffuse;
-		const vec3 half = normalize(light_dir + ray);
-		color += pow(max(dot(normal, half), 0.0f), 64.0f);
-		color *= softshadow(p, -light_dir, 0.1, light_dist, 64) * 0.7 + 0.3;
+		//const vec3 half = normalize(-light_dir + ray);
+		//color += pow(max(dot(normal, half), 0.0f), 128.0f);
+		color *= softshadow(p, -light_dir, 0.1, light_dist, 32) * 0.7 + 0.3;
 	}
+	//color *= ambient_occlusion(p, normal, 0.1);
 	//color *= mix(vec3(1), get_background_color(), 0.5 + 0.5 * dot(normal, vec3(0, -1, 0)));
 	//color = pow(color, vec3(0.45f));
 	color = clamp(color, 0.0f, 1.0f);
@@ -80,12 +56,12 @@ vec3 calculate_color(const distance& dist, const vec3& p, const vec3& ray, const
 
 vec3 get_background_color()
 {
-	return vec3(0.5, 0.7, 0.9);	
+	return vec3(0);	
 }
 
 vec3 get_camera_position()
 {
-	return vec3(2.5, 3, 2);
+	return vec3(0.1, -0.3, 0.6);
 }
 
 vec3 get_camera_target()
@@ -100,7 +76,7 @@ vec3 get_camera_up()
 
 vector<vec3> get_lights()
 {
-	return { vec3(2, 3, 2) };
+	return { vec3(0) };
 }
 
 float get_dist_epsilon()
